@@ -1,1 +1,196 @@
-<h1>Hello!</h1>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            html {
+            height: 100%;
+        }
+            body {
+                height: 100%;
+                margin: 0;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+                background: rgb(255,170,221);
+                background: -moz-linear-gradient(0deg, rgba(255,170,221,1) 0%, rgba(255,255,255,1) 100%);
+                background: -webkit-linear-gradient(0deg, rgba(255,170,221,1) 0%, rgba(255,255,255,1) 100%);
+                background: linear-gradient(0deg, rgba(255,170,221,1) 0%, rgba(255,255,255,1) 100%);
+                filter: progid:DXImageTransform.Microsoft.gradient(startColorstr="#ffaadd",endColorstr="#ffffff",GradientType=1);
+            }
+            input{
+                    flex-grow: 2;
+            }
+            #title{
+                display: flex;
+                justify-content: center;
+                font-weight: bold;
+                font-size: xx-large;
+                padding: 10px;
+            }
+            #input{
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-between;
+
+                font-size: large;
+            }
+            #results{
+                display: flex;
+                flex-direction: column;
+                flex-wrap: nowrap;
+                justify-content: space-evenly;
+            }
+            .group{
+                margin: 10px;
+                padding: 10px;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                flex-grow: 1;
+            }
+            .field{
+                margin: 10px;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                flex-grow: 1;
+            }
+            .resultField{
+                margin: 10px;
+                flex-grow: 1;
+            }
+            #selector{
+                margin: 10px;
+            }
+            #summary{
+                align-self: center;
+                flex-grow: 2;
+
+                font-weight: bold;
+                font-size: large;
+            }
+        </style>
+        <title>Prorate Calculator</title>
+<!--           <script src="https://unpkg.com/vue@2"></script>-->
+        <!-- development version, includes helpful console warnings -->
+        <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+        <!-- production version, optimized for size and speed -->
+<!--        <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>-->
+    </head>
+    <body>
+        <div id="title"><p>Meelts Prorate Calculator</p></div>
+        <div id="date">
+            <div id="selector">
+                <a>Verbose</a><input type="checkbox" v-model="verbose">
+            </div>
+            <div id="input">
+            <div id="invoice" class="group">
+                <div class="field">
+                    <a>Last invoice date: </a><input type="date" v-model="invoiceDate">
+                </div>
+                <div class="field">
+                    <a>Old price: </a><input type="number" v-model="oldPrice"><a>£</a>
+                </div>
+            </div>
+            <div id="change" class="group">
+                <div class="field">
+                    <a>Date of change: </a><input type="date" v-model="changeDate">
+                </div>
+                <div class="field">
+                    <a>New price: </a><input type="number" v-model="newPrice"><a>£</a>
+                </div>
+            </div>
+            </div>
+            <div id="results" v-if="showResults">
+                <div id="details" v-if="verbose">
+                <div class="resultField">
+                    <a>Days until end of billing cycle: </a><a>{{diffDate}}</a><a> Days</a>
+                </div>
+                <div class="resultField">
+                    <a>Daily price difference: </a><a>{{dailyPriceDiff}}</a><a>£</a>
+                </div>
+                <div class="resultField">
+                    <a>Total price difference: </a><a>{{totalPriceDiff}}</a><a>£</a>
+                </div>
+                <div class="resultField">
+                    <a>Next invoice date: </a><a>{{dateToString(nextInvoiceDate)}}</a>
+                </div>
+                </div>
+                <div class="resultField" id="summary">
+                    <a v-if="verbose">Summary: </a>
+                    <a>In the next invoice </a><a>{{formatCurrency(newBillTotal)}}</a><a> will be billed on </a><a>{{dateToString(nextInvoiceDate)}}</a>
+                </div>
+            </div>
+        </div>
+        <script>
+            var date = new Vue({
+                el: '#date',
+                data: {
+                    invoiceDate: null,
+                    oldPrice: null,
+                    changeDate: null,
+                    newPrice: null,
+                    verbose: false,
+                },
+                computed: {
+                    datesValid: function(){
+                        return (this.invoiceDate != null && this.changeDate != null);
+                    },
+                    pricesValid: function(){
+                        return (this.oldPrice != null && this.newPrice != null);
+                    },
+                    diffDate: function () {
+                        if(this.datesValid) {
+                            var a = new Date(this.changeDate);
+                            var b = new Date(this.invoiceDate);
+                            return 30-((a.getTime() - b.getTime())/(24*3600*1000));
+                        }
+                    },
+                    nextInvoiceDate: function () {
+                        if(this.invoiceDate != null){
+                            var a = new Date(this.invoiceDate);
+                            return (
+                                new Date(a.getTime()
+                                    + ((30+1)*(24*3600*1000)))
+                            );
+                        }
+                    },
+                    dailyPriceDiff: function () {
+                        if (this.pricesValid){
+                            return ((this.newPrice/30) - (this.oldPrice/30));
+                        }
+                    },
+                    totalPriceDiff: function () {
+                        if(this.datesValid && this.pricesValid){
+                            return (this.diffDate * this.dailyPriceDiff);
+                        }
+                    },
+                    newBillTotal: function () {
+                        if(this.pricesValid){
+                         return (+this.newPrice + +this.totalPriceDiff);
+                        }
+                    },
+                    showResults: function () {
+                        return (this.datesValid && this.pricesValid);
+                    }
+                },
+                methods: {
+                    dateToString: function (date) {
+                        if(this.datesValid) {
+                            return date.toISOString().split('T')[0];
+                        }
+                    },
+                    formatCurrency: function (money) {
+                        return (money.toLocaleString('en-UK', {
+                            style: 'currency',
+                            currency: 'GBP',
+                        }));
+                }
+            }
+            })
+        </script>
+    </body>
+</html>
